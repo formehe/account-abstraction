@@ -82,7 +82,7 @@ export const DefaultsForUserOp: UserOperation = {
   signature: '0x'
 }
 
-export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: string, chainId: number): UserOperation {
+export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: string, chainId: number, validatorKindID = 0): UserOperation {
   const message = getUserOpHash(op, entryPoint, chainId)
   const msg1 = Buffer.concat([
     Buffer.from('\x19Ethereum Signed Message:\n32', 'ascii'),
@@ -92,7 +92,11 @@ export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: strin
   const sig = ecsign(keccak256_buffer(msg1), Buffer.from(arrayify(signer.privateKey)))
   // that's equivalent of:  await signer.signMessage(message);
   // (but without "async"
-  const signedMessage1 = toRpcSig(sig.v, sig.r, sig.s)
+  let signedMessage1 = toRpcSig(sig.v, sig.r, sig.s);
+  if (validatorKindID != 0) {
+    signedMessage1 = defaultAbiCoder.encode(['uint256', 'bytes'], [validatorKindID, signedMessage1])
+  }
+  
   return {
     ...op,
     signature: signedMessage1
